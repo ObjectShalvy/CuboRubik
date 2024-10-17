@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cubo de Rubik Interactivo Mejorado</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .scene {
+            width: 300px;
+            height: 300px;
+            perspective: 600px;
+        }
+        .cubo {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-30deg) rotateY(-45deg);
+            transition: transform 0.5s;
+        }
+        .cara {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid black;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            opacity: 0.9;
+        }
+        .cuadrado {
+            border: 1px solid black;
+            transition: background-color 0.3s;
+        }
+        .frente { transform: translateZ(50px); }
+        .atras { transform: translateZ(-50px) rotateY(180deg); }
+        .izquierda { transform: translateX(-50px) rotateY(-90deg); }
+        .derecha { transform: translateX(50px) rotateY(90deg); }
+        .arriba { transform: translateY(-50px) rotateX(90deg); }
+        .abajo { transform: translateY(50px) rotateX(-90deg); }
+        
+        .blanco { background-color: white; }
+        .amarillo { background-color: yellow; }
+        .azul { background-color: blue; }
+        .verde { background-color: green; }
+        .rojo { background-color: red; }
+        .naranja { background-color: orange; }
+
+        .controles {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="scene">
+            <div class="cubo" id="cubo">
+                <div class="cara frente" id="frente"></div>
+                <div class="cara atras" id="atras"></div>
+                <div class="cara izquierda" id="izquierda"></div>
+                <div class="cara derecha" id="derecha"></div>
+                <div class="cara arriba" id="arriba"></div>
+                <div class="cara abajo" id="abajo"></div>
+            </div>
+        </div>
+        <div class="controles">
+            <button onclick="mover('U')">U</button>
+            <button onclick="mover('R')">R</button>
+            <button onclick="mover('F')">F</button>
+            <button onclick="mover('D')">D</button>
+            <button onclick="mover('L')">L</button>
+            <button onclick="mover('B')">B</button>
+            <button onclick="mezclar()">Mezclar</button>
+        </div>
+    </div>
+
+    <script>
+        const colores = ['blanco', 'amarillo', 'azul', 'verde', 'rojo', 'naranja'];
+        const caras = ['frente', 'atras', 'izquierda', 'derecha', 'arriba', 'abajo'];
+
+        function inicializarCubo() {
+            caras.forEach((cara, index) => {
+                const elemento = document.getElementById(cara);
+                elemento.innerHTML = Array(9).fill().map(() => `<div class="cuadrado ${colores[index]}"></div>`).join('');
+            });
+        }
+
+        function obtenerColor(cara, indice) {
+            return document.getElementById(cara).children[indice].className.split(' ')[1];
+        }
+
+        function setColor(cara, indice, color) {
+            document.getElementById(cara).children[indice].className = `cuadrado ${color}`;
+        }
+
+        function rotarCara(cara) {
+            const colores = Array.from(document.getElementById(cara).children).map(el => el.className.split(' ')[1]);
+            [0, 1, 2, 3, 5, 6, 7, 8].forEach((i, index) => {
+                setColor(cara, i, colores[[6, 3, 0, 7, 1, 8, 5, 2][index]]);
+            });
+        }
+
+        function mover(movimiento) {
+            const movimientos = {
+                'U': () => {
+                    rotarCara('arriba');
+                    const temp = [obtenerColor('frente', 0), obtenerColor('frente', 1), obtenerColor('frente', 2)];
+                    ['frente', 'izquierda', 'atras', 'derecha'].forEach((cara, i, arr) => {
+                        for (let j = 0; j < 3; j++) {
+                            setColor(cara, j, obtenerColor(arr[(i+3) % 4], j));
+                        }
+                    });
+                    for (let j = 0; j < 3; j++) {
+                        setColor('derecha', j, temp[j]);
+                    }
+                },
+                'R': () => {
+                    rotarCara('derecha');
+                    const temp = [obtenerColor('frente', 2), obtenerColor('frente', 5), obtenerColor('frente', 8)];
+                    ['frente', 'arriba', 'atras', 'abajo'].forEach((cara, i, arr) => {
+                        [2, 5, 8].forEach((j, k) => {
+                            if (cara === 'atras') {
+                                setColor(cara, [8, 5, 2][k], obtenerColor(arr[(i+3) % 4], j));
+                            } else {
+                                setColor(cara, j, obtenerColor(arr[(i+3) % 4], cara === 'arriba' ? [8, 5, 2][k] : j));
+                            }
+                        });
+                    });
+                    [2, 5, 8].forEach((j, k) => setColor('abajo', j, temp[k]));
+                },
+                'F': () => {
+                    rotarCara('frente');
+                    const temp = [obtenerColor('arriba', 6), obtenerColor('arriba', 7), obtenerColor('arriba', 8)];
+                    [
+                        {cara: 'arriba', indices: [6, 7, 8]},
+                        {cara: 'derecha', indices: [0, 3, 6]},
+                        {cara: 'abajo', indices: [2, 1, 0]},
+                        {cara: 'izquierda', indices: [8, 5, 2]}
+                    ].forEach((info, i, arr) => {
+                        info.indices.forEach((j, k) => {
+                            const nextInfo = arr[(i+1) % 4];
+                            setColor(info.cara, j, obtenerColor(nextInfo.cara, nextInfo.indices[k]));
+                        });
+                    });
+                },
+                'D': () => {
+                    rotarCara('abajo');
+                    const temp = [obtenerColor('frente', 6), obtenerColor('frente', 7), obtenerColor('frente', 8)];
+                    ['frente', 'derecha', 'atras', 'izquierda'].forEach((cara, i, arr) => {
+                        for (let j = 6; j < 9; j++) {
+                            setColor(cara, j, obtenerColor(arr[(i+3) % 4], j));
+                        }
+                    });
+                    for (let j = 6; j < 9; j++) {
+                        setColor('izquierda', j, temp[j-6]);
+                    }
+                },
+                'L': () => {
+                    rotarCara('izquierda');
+                    const temp = [obtenerColor('frente', 0), obtenerColor('frente', 3), obtenerColor('frente', 6)];
+                    ['frente', 'abajo', 'atras', 'arriba'].forEach((cara, i, arr) => {
+                        [0, 3, 6].forEach((j, k) => {
+                            if (cara === 'atras') {
+                                setColor(cara, [6, 3, 0][k], obtenerColor(arr[(i+3) % 4], j));
+                            } else {
+                                setColor(cara, j, obtenerColor(arr[(i+3) % 4], cara === 'abajo' ? [6, 3, 0][k] : j));
+                            }
+                        });
+                    });
+                    [0, 3, 6].forEach((j, k) => setColor('arriba', j, temp[k]));
+                },
+                'B': () => {
+                    rotarCara('atras');
+                    const temp = [obtenerColor('arriba', 2), obtenerColor('arriba', 1), obtenerColor('arriba', 0)];
+                    [
+                        {cara: 'arriba', indices: [2, 1, 0]},
+                        {cara: 'izquierda', indices: [0, 3, 6]},
+                        {cara: 'abajo', indices: [6, 7, 8]},
+                        {cara: 'derecha', indices: [8, 5, 2]}
+                    ].forEach((info, i, arr) => {
+                        info.indices.forEach((j, k) => {
+                            const nextInfo = arr[(i+1) % 4];
+                            setColor(info.cara, j, obtenerColor(nextInfo.cara, nextInfo.indices[k]));
+                        });
+                    });
+                }
+            };
+
+            if (movimientos[movimiento]) {
+                movimientos[movimiento]();
+            }
+        }
+
+        function mezclar() {
+            const movimientos = ['U', 'R', 'F', 'D', 'L', 'B'];
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const movimiento = movimientos[Math.floor(Math.random() * movimientos.length)];
+                    mover(movimiento);
+                }, i * 100);
+            }
+        }
+
+        inicializarCubo();
+    </script>
+</body>
+</html>
